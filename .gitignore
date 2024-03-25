@@ -2,7 +2,6 @@
 *.aux
 *.bat
 *.bcf
-*.cls
 *.glo
 *.gls
 *.gz
@@ -18,7 +17,6 @@
 *.sublime-workspace
 *.synctex
 *.synctex(busy)
-*.tex
 *.toc
 *.txt
 *.xml
