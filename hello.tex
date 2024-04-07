@@ -1,7 +1,11 @@
 \documentclass{xduugthesis}
 \usepackage{bookmark}
 \xdusetup{
-	style = { cjk-font = fandol, latin-font = gyre },
+	style = { 
+		cjk-font = fandol, 
+		latin-font = gyre,
+		bib-backend = biblatex
+	},
 	info = {
 		title = {
 			基于RecyclerView的高性能\\Feed流研究与应用
@@ -10,9 +14,10 @@
 		major = {软件工程},
 		supervisor = {王琨},
 		department = {计算机科学与技术学院},
-		abstract = {chapters/abstract.tex},
+		abstract = {chapter/abstract.tex},
 		class-id = {2003052},
-		student-id = {20009200303}
+		student-id = {20009200303},
+		bib-resource = {bibres/enhance.bib}
 	}
 }
 % 编译两遍才能显示目录？？？

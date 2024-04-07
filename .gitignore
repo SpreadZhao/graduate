@@ -1,6 +1,5 @@
 *.7z
 *.aux
-*.bat
 *.bcf
 *.glo
 *.gls
@@ -22,6 +21,8 @@
 *.xml
 *.zip
 *.pdf
+*.bbl
+*.blg
 .DS_Store
 build
 test
