@@ -1,0 +1,1 @@
+rm *.aux *.bbl *.bcf *.blg *.log *.pdf *.run.xml *.toc
