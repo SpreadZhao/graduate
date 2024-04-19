@@ -20,7 +20,7 @@
 *.txt
 *.xml
 *.zip
-*.pdf
+/*.pdf
 *.bbl
 *.blg
 .DS_Store

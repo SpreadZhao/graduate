@@ -24,3 +24,6 @@
     4. `clear.bat`: Windows用户清除构建出的产物。
 
     > 其实你也可以点进脚本看一看，都没什么东西。这个脚本的编写参考了[The Short Introduction to LaTeX2e (Chinese Simplified)](https://mirrors.cloud.tencent.com/CTAN/info/lshort/chinese/lshort-zh-cn.pdf)的6.1.4小节的最后一部分。
+
+5. `hello.tex`是主文档。仿照文档中的写法来进行就可以。
+6. 写论文的方式可以参考[Xduts的文档](docs/xduts.pdf)。
