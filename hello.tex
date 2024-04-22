@@ -14,21 +14,18 @@
 		major = {软件工程},
 		supervisor = {王琨},
 		department = {计算机科学与技术学院},
-		% 中英文摘要都要有
-		abstract = {chapter/abstract.tex},
-		abstract* = {chapter/abstract_en.tex},
+		abstract = {chapter/abstract.tex},		% Chinese abstract
+		abstract* = {chapter/abstract_en.tex},	% English abstract
 		class-id = {2003052},
 		student-id = {20009200303},
-		bib-resource = {bibres/enhance.bib},
+		bib-resource = {bibres/cites.bib},
 		keywords = {安卓, 性能优化, 绘制, 应用开发},
 		keywords* = {Android, Performance Optimization, UI, Application Development}
 	}
 }
-% 编译两遍才能显示目录？？？
-% 因为biber就是这样的，不想管了。。。
 \begin{document}
-\input{chapter/1-android-view}
-\input{chapter/2-android-message}
+\input{chapter/1-introduction}
+\input{chapter/2-ui-system}
 \input{chapter/3-recyclerview-intro}
 \input{chapter/4-preload-framework}
 \input{chapter/5-preload-conclusion}
