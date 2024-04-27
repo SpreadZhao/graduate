@@ -2,9 +2,11 @@
 \usepackage{bookmark}
 \xdusetup{
 	style = { 
-		cjk-font = fandol, 
-		latin-font = gyre,
-		bib-backend = biblatex
+		cjk-font = win, 
+		latin-font = tac,
+		bib-backend = biblatex,
+		after-skip = {18pt,12pt,12pt,12pt,10pt,10pt},
+		before-skip = {20pt,14pt,14pt,14pt,12pt,12pt}
 	},
 	info = {
 		title = {
@@ -20,7 +22,8 @@
 		student-id = {20009200303},
 		bib-resource = {bibres/cites.bib},
 		keywords = {安卓, 性能优化, 绘制, 应用开发},
-		keywords* = {Android, Performance Optimization, UI, Application Development}
+		keywords* = {Android, Performance Optimization, UI, Application Development},
+		acknowledgements = {chapter/thanks.tex}
 	}
 }
 \begin{document}
@@ -28,6 +31,6 @@
 \input{chapter/2-ui-system}
 \input{chapter/3-android-message}
 \input{chapter/4-recyclerview-intro}
-\input{chapter/5-preload-conclusion}
+\input{chapter/5-preload-framework}
 \input{chapter/6-other-fluency-optimization}
 \end{document}

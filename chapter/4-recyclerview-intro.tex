@@ -1,6 +1,6 @@
 \chapter{RecyclerView 介绍}
 
-RecyclerView 最早在 Google I/O 2016 被提出，用来解决传统应用程序中使用 ListView 处理复杂的列表时带来的性能问题。RecyclerView 本身也是一个 ViewGroup，与其它常用的 ViewGroup，如 ScrollView、ViewPager、ListView 等在绘制流程中的行为是几乎一致的。只不过，RecyclerView 更加专注于在流式布局的场景下，对于多种复杂的子项进行合理的回收和复用，从而在不断滑动的过程中，增加已有组件的利用率，提高滑动时的性能和流畅度。
+RecyclerView 最早在 Google I/O 2016 被提出，用来解决传统应用程序中使用 ListView 处理复杂的列表时带来的性能问题。RecyclerView 本身也是一个 ViewGroup，与其它常用的 ViewGroup，如 ScrollView、ViewPager、ListView 等在绘制流程中的行为是几乎一致的。\cite{mawlood2022listview}只不过，RecyclerView 更加专注于在流式布局的场景下，对于多种复杂的子项进行合理的回收和复用，从而在不断滑动的过程中，增加已有组件的利用率，提高滑动时的性能和流畅度。
 
 RecyclerView 不是单独的一个组件。由于处理各种子 View 的回收和复用，以及处理动画、数据绑定等操作的逻辑都非常复杂，因此将这些逻辑都分成独立的组件。整个 RecyclerView 家族主要由以下几个组件组成：
 
@@ -11,7 +11,7 @@ RecyclerView 不是单独的一个组件。由于处理各种子 View 的回收�
     \item Adapter：RecyclerView 最核心的数据管理类。所有的子 View 中的数据由 Adapter 来管理，并在合适的时机进行绑定，从而能够显示在屏幕上。Adapter 作为数据的存储器，能够通知 RecyclerView 数据发生了何种变化，从而通知 RecyclerView 进行适当的刷新操作。
 \end{itemize}
 
-接下来将通过对 RecyclerView 本身的测量、布局、滑动、数据处理流程来认识这些组件，并引出响应的优化点。
+接下来将通过对 RecyclerView 本身的测量、布局、滑动、数据处理流程来认识这些组件，并引出相应的优化点。
 
 \section{RecyclerView 的测量}
 
@@ -23,7 +23,7 @@ RecyclerView 不是单独的一个组件。由于处理各种子 View 的回收�
 
 \begin{itemize}
     \item 第一步：处理 Adapter 中提交的更新，同时保存当前子 View 的参数信息；
-    \item 第二步：对于每一个子 View，执行最终的测量和布局流程，确定它们安放的位置。这个过程也是 RecyclerView 和 Adapter 交互最主要的过程 —— 进行数据绑定。
+    \item 第二步：对于每一个子 View，执行最终的测量和布局流程，确定它们安放的位置。这个过程也是 RecyclerView 和 Adapter 交互最主要的过程 —— 进行数据绑定；
     \item 第三步：主要处理动画的流程。因为不涉及到布局上的性能优化，本文不进行讨论。
 \end{itemize}
 
@@ -33,6 +33,26 @@ RecyclerView 不是单独的一个组件。由于处理各种子 View 的回收�
 
 \section{RecyclerView 对于滑动过程的处理}
 
-根据之前介绍的 View 对于用户输入事件的处理，我们应该明白
+任何 View 处理滑动流程时，都需要处理 ACTION\_DOWN 事件、ACTION\_MOVE 事件和 ACTION\_UP 事件。通常，一个完整的滑动流程是一个 ACTION\_DOWN 加上若干个 ACTION\_MOVE 以及结尾的 ACTION\_UP。因此，对于 RecyclerView 来说，如何处理 ACTION\_DOWN 事件的走向尤为重要，这影响了后续事件的分发，自然也影响了整个的滑动流程。当 ACTION\_DOWN 事件产生时，RecyclerView 并不会拦截该事件，只会将事件传递给子 View。而子 View 可以自主选择是否消费该事件。如果子 View 没有消费 ACTION\_DOWN，那么将会由 RecyclerView 自己来消费。RecyclerView 本身永远会消费任何触摸事件，所以无法再继续向上传递。之后所有的 ACTION\_MOVE 事件以及最后的 ACTION\_UP 事件都会由 RecyclerView 自己来消费。这也是滑动流程中最理想的情况，完全由 RecyclerView 来主动控制。
+
+但是，通常 RecyclerView 的子 View 是需要消费 ACTION\_DOWN 事件的。比如一个可以点击的新闻条目、一个视频条目等等。这些响应了点击事件的子 View 自然需要消费 ACTION\_DOWN 事件来处理点击过程。这也就导致了接下来的 ACTION\_MOVE 事件并不会被发送给 RecyclerView 来消费。那么在这种情况下，RecyclerView 应该如何处理滑动流程呢？答案是通过拦截。虽然 RecyclerView 接下来不会收到子 View 传递来的未经过消费的 ACTION\_MOVE 事件，但是在将其传递给子 View 之前，RecyclerView 本身也可以拦截该事件。因此，RecyclerView 在拦截的流程中，只要发现当前事件是 ACTION\_MOVE 事件，就会设置滑动状态的标记位，并拦截该事件。结果就是子 View 会收到 ACTION\_CANCEL 事件从而无法进行滑动处理（不进行嵌套滑动处理的条件下），而 RecyclerView 本身能够通过该方式消费 ACTION\_MOVE 事件以及最后的 ACTION\_UP 事件。虽然这样确实能够保证 RecyclerView 正常处理滑动流程，但是和直接处理不同，如果是通过拦截的方式处理 ACTION\_MOVE 事件，拦截的过程和真正进行滑动的过程会位于两个不同的消息，也就是两个不同的流程中。这样会导致如果中间被其他消息插入，会产生一些副作用。这部分也是我们在优化过程中需要重点克服的困难之一。
+
+在真正进行滑动的过程中，会对每一次滑动事件进行解析。解析出的滑动距离、方向等属性会用于接下来的布局过程。RecyclerView 会对因为滑动而改变的子 View 进行重新的测量和布局，并尽可能复用已经被回收的 ViewHolder 来减少重复创建。对于新添加的子 View，也会通过 Adapter 进行数据绑定。
 
 \section{RecyclerView 对数据改动的响应}
+
+RecyclerView 最推荐的方式是进行增量更新，而不是全量更新。全量更新会导致 RecyclerView 整体的刷新，同时会将所有已经位于屏幕上绑定数据完成的 View 进行回收和废弃，接下来会重新用新的数据进行绑定。因此，如果真正的修改只有非常小的一部分，建议通过增量更新的方式通知 RecyclerView，之后在 RecyclerView 的布局阶段的第一步中会消费这些更新请求，并在最终布局的流程中只进行修改部分的重新布局。这对于性能的提升很大，同时也为动画的执行留足了 CPU 资源。
+
+数据改动的通知是通过 Adapter。当需要的数据发生变化时，会先修改 Adapter 持有的数据结构，并调用 Adapter 的接口去通知 RecyclerView 发生了什么样的变化。通常数据改变有如下的方式：
+
+\begin{itemize}
+    \item 单项改动；
+    \item 多项改动；
+    \item 单项增加；
+    \item 单项移除；
+    \item 多项增加；
+    \item 多项移除；
+    \item 单项移动。
+\end{itemize}
+
+这些改动统一被包装成接口，调用即可提交改动至 RecyclerView。而 RecyclerView 本身通过观察者模式观察 Adapter 中的数据变化。每一个提交改动都会被存放到队列中进入代办（pending）状态，直到布局流程开始时会被消费。在消费的过程中，也只会通过改动中提交的位置信息对可能受影响的子 View 进行修改。
