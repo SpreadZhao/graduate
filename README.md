@@ -27,3 +27,22 @@
 
 5. `hello.tex`是主文档。仿照文档中的写法来进行就可以。
 6. 写论文的方式可以参考[Xduts的文档](docs/xduts.pdf)。
+
+## Trouble Shooting
+
+### 编译时出现字体缺失
+
+目前我看下来，需要这些字体：
+
+- Arial
+- Consolas
+- SimHei
+- SimKai
+- SimSun
+- Time New Romans
+
+缺什么装什么就行。
+
+### libcrypt.so 报错
+
+[dlopen: libcrypt.so.1: cannot open shared object file: No such file or directory](https://stackoverflow.com/questions/71187944/dlopen-libcrypt-so-1-cannot-open-shared-object-file-no-such-file-or-directory)
