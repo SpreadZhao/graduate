@@ -1,0 +1,32 @@
+\begin{tikzpicture}
+	\begin{axis}[
+		xlabel={视频数量},
+		ylabel={长帧占比},
+		xmin=0, xmax=6,
+		ymin=0, ymax=6,
+		xtick={0,1,2,3,4,5},
+		ytick={0,1,2,3,4,5},
+		legend pos=north west,
+		grid style=dashed,
+	]
+	
+	\addplot[
+		color=blue,
+		mark=square,
+		]
+		coordinates {
+		(0,1)(1,1)(2,4)(3,2)(4,3)(5,5)
+		};
+	\addlegendentry{数据}
+
+    \addplot[
+		color=red,
+		mark=square,
+		]
+		coordinates {
+		(0,0)(1,2)(2,5)(3,1)(4,2)(5,2)
+		};
+	\addlegendentry{数据}
+	
+	\end{axis}
+\end{tikzpicture}
