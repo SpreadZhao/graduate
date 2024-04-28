@@ -1,10 +1,14 @@
-\chapter{Android 绘制系统}
+\chapter{流畅性优化调研工作}
+
+对于 Android 应用中图形的绘制体系的优化，需要深度对底层源码进行调研，然后才能上手进行优化。因此开展了流畅性优化调研工作，阅读 Android Framework 以及 Android SDK 的源码，总结出整体的应用绘制体系。在有了这些前置知识的情况下，进行针对 RecyclerView 的优化工作，并搭建合理的流畅性指标来量化优化结果。
+
+\section{Android 绘制系统}
 
 Android 系统底层采用 Skia，OpenGL 等引擎进行绘制，而在上层封装好的组件就是 Canvas 和 View 。\cite{tahir2013learning}View绘制系统是 Android 开发者最常用到的 UI 编写 API，同时各种动画、自定义样式等绘制操作也都是交由 View 和 Canvas 来完成。
 
 本课题用到的优化机制，主要是针对 View 的，因此这里着重介绍一下 View 的绘制流程。在 Android 应用中，View 占据了一块屏幕上的矩形区域。在这个区域内，UI 将被显示给用户，同时这块区域也负责处理用户、应用本身输入的事件，从而和用户进行交互。View 的体系非常庞大，绘制系统也非常复杂。这里主要针对 View 的大致分类和普通 View 的绘制流程进行说明。
 
-\section{View 的分类}
+\subsection{View 的分类}
 
 从总体的功能上看，View 只分为两种：普通的 View 以及 ViewGroup。顾名思义，ViewGroup是用来承载其它 View 和 ViewGroup 的容器；而普通的 View 无法承载其它的 View，只能作为直接和用户交互的组件。在 Android 系统中，View 体系通过树形结构来存储，因此，这棵树上所有的非叶子节点都是 ViewGroup，所有的叶子节点都是普通的 View。
 
@@ -12,7 +16,7 @@ Android 系统底层采用 Skia，OpenGL 等引擎进行绘制，而在上层封
 
 从内容层级来看，Android 应用程序从最顶层的 DecorView 出发（DecorView 本身被 ViewRootImpl 持有），到持有内容的容器 contentParent，最后到应用开发者主动向 Window 中添加的各种 View。这些系统级别的 View 一部分是为了管理系统的应用以及悬浮窗等 Window 的通用行为，另一部分是为了给开发者提供额外的扩展能力。因此，我们对于 View 的性能进行优化，主要优化的也是开发者自行添加的这一部分。
 
-\section{Android 屏幕刷新原理}
+\subsection{Android 屏幕刷新原理}
 
 在 Android 系统中，屏幕的显示操作需要靠三个部分来完成：CPU，GPU 和显示器。其中，CPU 负责进行绘制信息的计算，其中就包括之后我们介绍的 View 的绘制流程。这些计算好的信息会交给 GPU 进行图形渲染，生成每一个屏幕像素点的颜色信息，并存储到一个缓存当中。当需要让显示器进行显示时，GPU 和显示器的缓存会进行交换，这样显示器得到的就是新的要显示的内容。下面针对屏幕刷新的情况介绍一些概念：
 
@@ -28,7 +32,7 @@ Android 系统底层采用 Skia，OpenGL 等引擎进行绘制，而在上层封
 
 下一个问题，就是两个缓存进行交换的时机。如果无法保证交换时的读写安全，那么依然会产生显示上的问题。当屏幕的最后一个像素显示完毕后，设备需要一段空闲时间，以便将指针移动回第一个像素来显示下一帧的内容。这段空闲的时间叫做 Vertical Blanking Interval(VBI)。在这段时间内，屏幕上的内容依然会保持原装，并且显示器也不会去读缓存中的内容。因此，这个时间就是进行缓存交换的最佳时刻。在VBI的时间内，系统会发射出用于同步时钟信号的垂直脉冲。这个垂直脉冲也就是 VSync 信号，是我们判断一帧到达的关键信息。
 
-\section{Choreographer 和屏幕信号进行同步}
+\subsection{Choreographer 和屏幕信号进行同步}
 
 以上的介绍很大程度上是在硬件层面描述 Android 系统中应用的刷新模式。下面我们从软件层面来说明这一过程，来看看在 Android 系统中，画面的刷新流程到底是怎样的。对于应用层的进程来讲，其和屏幕刷新相关的主要媒介是通过一个上层的 Framework 组建 —— Choreographer。
 
@@ -48,7 +52,7 @@ Choreographer 在一帧内所做的绘制工作主要有：
 
 这些绘制工作都作用在应用的 View 树上，通过遍历 View 层级中的各个 View 来对其进行重新绘制，相应触摸之后的新行为等等。在这个过程中，也涉及到很多的性能优化过程，比如增量更新以及脏区计算等等。因此，对于这部分逻辑的改动需要格外小心，确保在优化完毕后，View 的行为对于业务来说和优化之前保持一致。
 
-\section{View 的测量、布局和绘制}
+\subsection{View 的测量、布局和绘制}
 
 Choreographer 在一帧中最主要的任务就是处理这一帧内 View 树中每个 View 的绘制流程。其中需要进行三轮不同的操作：测量（measure）、布局（layout）和绘制（draw）。\cite{rountev2014static}在测量的过程中，需要确定每一个 View 所占据的矩形区域的大小。其中最典型也是最耗时的就是文本类型的 View 的测量。这些文本因为语言、字符宽度、文字方向等不同的因素，需要进行非常复杂的测量流程，最终才能确定文本的长和宽。因此，View 的测量流程通常也是 View 进行绘制的时候最耗时的一个过程；在布局过程中，需要根据每一个 ViewGroup 规定的布局方式对其中的子 View 进行布局，也就是确定其在 Window 上显示的位置。常见的 ViewGroup 有线性布局 LinearLayout，帧布局 FrameLayout和相对布局 RelativeLayout。这些不同的布局对于其中的子 View 有不同的布局要求。最终在这一阵进行布局的时候，就会把已经测量完毕的子 View 布局到屏幕上，也就是确定它们应该摆放的位置；最后一步就是绘制了，也就是真正将图形绘制到屏幕上的操作。这部分工作大部分是通过 Android 的上层渲染组件 Canvas 来完成的。 Canvas 会将各种类型的图形在 CPU 上进行计算，之后会将这些计算好的结果发送给 GPU 进行渲染。这也是大部分 Android 动画实现的原理。
 
@@ -56,7 +60,7 @@ Choreographer 在一帧中最主要的任务就是处理这一帧内 View 树中
 
 然而，View 体系并没有限制 ViewGroup 应该在测量的时机一定得到子 View 的准确测量结果。这就意味着我们可以在测量的时候返回一个假值，并在后面的时机得到真正的值。RecyclerView 就是这样做的。因为它通常需要承载大量的子 View，因此它对于性能的要求非常高。所以它的测量流程作为非常耗时的一个流程，需要尽可能地减少测量的总次数以及避免重复测量。RecyclerView 真正测量子 View 是在布局流程中，在测量完子 View 之后会立刻对子 View 进行布局。这种方式能够避免子 View 在不适宜的时机请求父 View 测量而导致性能下降的问题。当 RecyclerView 在进行布局时，它会禁止子 View 进行布局请求，从而拦截子 View 的测量请求，从而减少不必要的测量次数。这部分之后会在 4.2 详细说明。
 
-\section{用户输入事件的处理}
+\subsection{用户输入事件的处理}
 
 当用户用手触摸屏幕时，触摸行为会定位到特定的 View 上。但是，这个触摸行为的响应只会在下一帧到来时进行响应。因为受限于屏幕的刷新率，只有在下一帧屏幕才能给出新的图像。所以等到 Choreographer 接收到下一个 VSync 信号时，新的绘制流程启动，这些积累的触摸事件就会在这个时候被消费。触摸事件主要有以下几种：
 
@@ -70,3 +74,72 @@ Choreographer 在一帧中最主要的任务就是处理这一帧内 View 树中
 触摸事件会从 View 树的根节点开始向下传递。事件在链路中流动的路线总体上呈现出“U 型”。在从顶层的 View 开始向下进行事件的分发（dispatch）。在这个过程中，路径上的每一个 ViewGroup 都可能拦截（intercept）这个事件。\cite{wu2017appcheck}如果事件已经传递到了最底层的 View，又或者被其中的某一个 ViewGroup 成功拦截，那么将会由相应的 View 或者 ViewGroup 去逐一消费这个事件。如果事件被当前 View 或 ViewGroup 消费，那么事件的传递将在此终止；如果没有被消费，那么事件会向上传递，直到再次传递到根 View 为止。
 
 对于 RecyclerView 来讲，因为其需要处理大量的滚动操作，所以触摸事件的处理尤为重要。当触摸事件被 RecyclerView 拦截时，它会通过当前是否是滚动状态而选择是否拦截该事件。如果是 ACTION\_MOVE 事件，RecyclerView 通过解析事件的详细信息，发现此时用户触发了滚动操作，那么就会将自己标记为滚动状态，并最终拦截这个 ACTION\_MOVE 事件。因此，之后的事件消费也是由 RecyclerView 自身来进行（嵌套滚动不适用于这段说明，但其不在本文的讨论范围内）；如果是 ACTION\_DOWN 事件，那么 RecyclerView 不会拦截这个事件，让其成功到达子 View，由子 View 来决定是否消费该事件。这个过程中，子 View 是否消费 ACTION\_DOWN 事件对后续的事件传递影响尤为重要。如果处理不当，可能会产生一些影响很重大的bug，这部分会在 5.4.1 详细说明。
+
+\section{Android 消息机制}
+
+Android 应用程序运行的基本框架就是基于消息机制，同时绘制行为和消息机制的配合也非常紧密。Android 系统应用内部的消息机制主要和这几个类相关：Looper、Handler 和 MessageQueue。
+
+Android 系统的主线程对应的类是 ActivityThread。该类内部维护着主线程启动，并处理各个线程发送消息的流程，同时也负责 UI 的绘制消息的处理。当该线程启动时，同时会准备自己的 Looper 来负责消息队列的管理和任务的委派。ActivityThread 中的 Looper 成为 Main Looper。由于只能由主线程来处理 UI 类型任务的分发，所以 Main Looper 也只允许主线程持有。如果应用内部的线程也想利用这套消息机制来进行任务处理（比如埋点上报的线程），也可以准备自己的 Looper 来接收任何线程发送给当前线程的任务并添加到消息队列中，在某一个时刻被取出并执行。
+
+Looper 内部管理的消息队列的实现类就是 MessageQueue。其内部管理了任务队列的管理操作，包括入队、出队，以及空闲时的敏捷任务处理操作等。大部分是通过调用 Android Native 的 C++ 代码来实现，并通过 JNI 包装成面向 Android Framework 以及 Android 应用程序的接口。
+
+Android 程序中，消息不能直接通过访问 Looper 或者 MessageQueue 的方式进行提交，只能通过封装好的方式 —— Handler 进行提交。这种方式更加安全和方便，也能给应用的架构设计提供更好的开发范式。在任何线程中都可以创建 Handler，但是 Handler 在构造的时候必须指定 Looper，也就是明确提交的任务需要由哪一个线程的 Looper 来管理。\cite{fan2018efficiently}同时，Handler 也提供了多种任务执行的方式、多种提交任务的方式以及各种延时和取消的功能。例如，我们可以在发送一个任务之前，取消之前已经提交但未执行的特定类型的任务来满足特定的业务需求。在对 RecyclerView 的布局流程进行改造时，我们也会利用到这一特性。
+
+\section{RecyclerView 介绍}
+
+RecyclerView 最早在 Google I/O 2016 被提出，用来解决传统应用程序中使用 ListView 处理复杂的列表时带来的性能问题。RecyclerView 本身也是一个 ViewGroup，与其它常用的 ViewGroup，如 ScrollView、ViewPager、ListView 等在绘制流程中的行为是几乎一致的。\cite{mawlood2022listview}只不过，RecyclerView 更加专注于在流式布局的场景下，对于多种复杂的子项进行合理的回收和复用，从而在不断滑动的过程中，增加已有组件的利用率，提高滑动时的性能和流畅度。
+
+RecyclerView 不是单独的一个组件。由于处理各种子 View 的回收和复用，以及处理动画、数据绑定等操作的逻辑都非常复杂，因此将这些逻辑都分成独立的组件。整个 RecyclerView 家族主要由以下几个组件组成：
+
+\begin{itemize}
+    \item RecyclerView：父 View 本身，负责响应原有的 View 绘制流程，作为其它组件行为的发起者；
+    \item LayoutManager：负责 RecyclerView 的测量和布局流程，安排子 View 的位置。有不同的实现方式，比如线性布局，网格布局等等。本文中主要考虑在 Feed 流场景下常见的线性布局 LinearLayoutManger；
+    \item ItemAnimator：负责子 View 的显示，隐藏等动画。因为不涉及到核心的布局流程，所以本文不涉及到这方面的优化；
+    \item Adapter：RecyclerView 最核心的数据管理类。所有的子 View 中的数据由 Adapter 来管理，并在合适的时机进行绑定，从而能够显示在屏幕上。Adapter 作为数据的存储器，能够通知 RecyclerView 数据发生了何种变化，从而通知 RecyclerView 进行适当的刷新操作。
+\end{itemize}
+
+接下来将通过对 RecyclerView 本身的测量、布局、滑动、数据处理流程来认识这些组件，并引出相应的优化点。
+
+\subsection{RecyclerView 的测量}
+
+对于一个 ViewGroup 来说，它的测量过程就是要知道自己所有的子 View 的综合属性。然而，如果 RecyclerView 本身无法知晓子 View 都有谁，那自然无法进行测量。和其它的布局（如 LinearLayout，FrameLayout 等）不同，其它的布局在创建的时候，无论是通过 XML 还是手动在代码中调用 addView() 来创建，都是已经知道子 View 的完整状态；而 RecyclerView 获取子 View 参数信息的手段是通过 Adapter。而 Adapter 最重要的数据准备过程是交给开发者来决定的。因此，在初次测量时，RecyclerView 拿不到任何子 View 的信息。这个时候，如果RecyclerView 在布局方向（垂直或水平）上的属性是固定的值，那么测量就会很简单，直接返回对应的值即可；如果是一个不确定的值（比如 WRAP\_CONTENT），那么会先尝试进行一次布局流程，然后再进行测量。通常情况下， RecyclerView 在布局方向上的长度都是一个固定的值，因为这样能够很大程度上减少重复测量的次数，从而提高滑动的性能。
+
+\subsection{RecyclerView 的布局}
+
+布局是 RecyclerView 最关键的流程。这里涉及的就是对Adapter的消费，布局其中的子 View，以及回收和复用发生的地方。布局操作的整个流程在方法 dispatchLayout() 中，里面的流程分为三步。这三步所做的事情如下：
+
+\begin{itemize}
+    \item 第一步：处理 Adapter 中提交的更新，同时保存当前子 View 的参数信息；
+    \item 第二步：对于每一个子 View，执行最终的测量和布局流程，确定它们安放的位置。这个过程也是 RecyclerView 和 Adapter 交互最主要的过程 —— 进行数据绑定；
+    \item 第三步：主要处理动画的流程。因为不涉及到布局上的性能优化，本文不进行讨论。
+\end{itemize}
+
+接下来，我们将对 RecyclerView 最主要的布局流程进行分析。首先，RecyclerView 会拦截子 View 对布局的请求。在 RecyclerView 布局的过程中，子 View 本身就已经将要被布局。因此 RecyclerView 认为在这个时刻任何子 View 的布局行为都是多余的。因此 RecyclerView 并不会允许子 View 在这个时候请求布局。直到第三步结束之后，才再次允许子 View 进行布局请求。实际上，在真实开发过程中，也非常不建议在 RecyclerView 的子 View 中手动进行布局请求，而是使用 Adapter 去通知的方式进行增量更新。这样会有更高的效率和更安全的执行流程。
+
+接下来是最重要的布局流程。可以简单概括为：计算出起始锚点（通常是延布局方向的起始位置），并沿着布局方向决定每个 View 的行为。有可能是创建新的 View，也有可能是复用之前回收的 View；并给这些确定会显示在屏幕上的 View 进行数据绑定。这个过程中，创建和绑定的操作是交给 Adapter 来完成的。也就是说，开发者需要在自己的 Adapter 中完成创建和绑定的流程。因此，这个过程中我们能够进行一些特殊的操作。比如提前拿到 View 进行绑定，甚至利用空闲时间异步创建出 View 来避免真正用到 View 时才去创建而导致耗时增加；另外要强调的一点是，由于 View 本身不能具有 RecyclerView 需要的准确的参数信息（位置信息，状态变化标记位等），同时也不能被妥善地回收和复用。因此 RecyclerView 框架的做法是在 View 上包装一层 ViewHolder 来持有 View 的引用。对于 LayoutManager 来说，它直接操作的是 ViewHolder 而非 View，这样能够更好地对 View 进行回收和复用，也便于增加一些位置变化等关键信息来让 LayoutManager 更迅速地进行布局操作。
+
+\subsection{RecyclerView 对于滑动过程的处理}
+
+任何 View 处理滑动流程时，都需要处理 ACTION\_DOWN 事件、ACTION\_MOVE 事件和 ACTION\_UP 事件。通常，一个完整的滑动流程是一个 ACTION\_DOWN 加上若干个 ACTION\_MOVE 以及结尾的 ACTION\_UP。因此，对于 RecyclerView 来说，如何处理 ACTION\_DOWN 事件的走向尤为重要，这影响了后续事件的分发，自然也影响了整个的滑动流程。当 ACTION\_DOWN 事件产生时，RecyclerView 并不会拦截该事件，只会将事件传递给子 View。而子 View 可以自主选择是否消费该事件。如果子 View 没有消费 ACTION\_DOWN，那么将会由 RecyclerView 自己来消费。RecyclerView 本身永远会消费任何触摸事件，所以无法再继续向上传递。之后所有的 ACTION\_MOVE 事件以及最后的 ACTION\_UP 事件都会由 RecyclerView 自己来消费。这也是滑动流程中最理想的情况，完全由 RecyclerView 来主动控制。
+
+但是，通常 RecyclerView 的子 View 是需要消费 ACTION\_DOWN 事件的。比如一个可以点击的新闻条目、一个视频条目等等。这些响应了点击事件的子 View 自然需要消费 ACTION\_DOWN 事件来处理点击过程。这也就导致了接下来的 ACTION\_MOVE 事件并不会被发送给 RecyclerView 来消费。那么在这种情况下，RecyclerView 应该如何处理滑动流程呢？答案是通过拦截。虽然 RecyclerView 接下来不会收到子 View 传递来的未经过消费的 ACTION\_MOVE 事件，但是在将其传递给子 View 之前，RecyclerView 本身也可以拦截该事件。因此，RecyclerView 在拦截的流程中，只要发现当前事件是 ACTION\_MOVE 事件，就会设置滑动状态的标记位，并拦截该事件。结果就是子 View 会收到 ACTION\_CANCEL 事件从而无法进行滑动处理（不进行嵌套滑动处理的条件下），而 RecyclerView 本身能够通过该方式消费 ACTION\_MOVE 事件以及最后的 ACTION\_UP 事件。虽然这样确实能够保证 RecyclerView 正常处理滑动流程，但是和直接处理不同，如果是通过拦截的方式处理 ACTION\_MOVE 事件，拦截的过程和真正进行滑动的过程会位于两个不同的消息，也就是两个不同的流程中。这样会导致如果中间被其他消息插入，会产生一些副作用。这部分也是我们在优化过程中需要重点克服的困难之一。
+
+在真正进行滑动的过程中，会对每一次滑动事件进行解析。解析出的滑动距离、方向等属性会用于接下来的布局过程。RecyclerView 会对因为滑动而改变的子 View 进行重新的测量和布局，并尽可能复用已经被回收的 ViewHolder 来减少重复创建。对于新添加的子 View，也会通过 Adapter 进行数据绑定。
+
+\subsection{RecyclerView 对数据改动的响应}
+
+RecyclerView 最推荐的方式是进行增量更新，而不是全量更新。全量更新会导致 RecyclerView 整体的刷新，同时会将所有已经位于屏幕上绑定数据完成的 View 进行回收和废弃，接下来会重新用新的数据进行绑定。因此，如果真正的修改只有非常小的一部分，建议通过增量更新的方式通知 RecyclerView，之后在 RecyclerView 的布局阶段的第一步中会消费这些更新请求，并在最终布局的流程中只进行修改部分的重新布局。这对于性能的提升很大，同时也为动画的执行留足了 CPU 资源。
+
+数据改动的通知是通过 Adapter。当需要的数据发生变化时，会先修改 Adapter 持有的数据结构，并调用 Adapter 的接口去通知 RecyclerView 发生了什么样的变化。通常数据改变有如下的方式：
+
+\begin{itemize}
+    \item 单项改动；
+    \item 多项改动；
+    \item 单项增加；
+    \item 单项移除；
+    \item 多项增加；
+    \item 多项移除；
+    \item 单项移动。
+\end{itemize}
+
+这些改动统一被包装成接口，调用即可提交改动至 RecyclerView。而 RecyclerView 本身通过观察者模式观察 Adapter 中的数据变化。每一个提交改动都会被存放到队列中进入代办（pending）状态，直到布局流程开始时会被消费。在消费的过程中，也只会通过改动中提交的位置信息对可能受影响的子 View 进行修改。
