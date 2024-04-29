@@ -1,0 +1,40 @@
+\begin{center}
+\begin{adjustbox}{max width=\textwidth}
+\begin{tikzpicture}[node distance=3cm,>=latex',every node/.style={font=\small}]
+
+    % Define block styles
+    \tikzstyle{decision} = [diamond, draw, fill=blue!0, 
+        text width=4.5em, text badly centered, inner sep=0pt]
+    \tikzstyle{block} = [rectangle, draw, fill=blue!0, 
+        text width=5em, text centered, rounded corners, minimum height=3em, minimum width=1em]
+    \tikzstyle{line} = [draw, -latex']
+    
+    % Nodes
+    \node [block, text width=8em] (touch) {手指开始滑动};
+    \node [block, below of=touch, text width=8em] (receive_scroll) {RecyclerView 接收到滑动事件};
+    \node [decision, below of=receive_scroll, node distance=3cm] (is_scroll_touch) {此时是否是滑动状态};
+    \node [decision, below of=is_scroll_touch, node distance=4cm] (is_unlucky) {之前是否有不幸的外界预渲染};
+    \node [block, right of=is_unlucky, node distance=4cm] (set_unlucky_false) {设置 unlucky 标记位为 false};
+    \node [decision, right of=receive_scroll, node distance=4cm] (with_timeout) {是否设置了超时补发};
+    \node [block, below of=with_timeout, text width=8em, node distance=3cm] (post_extra_layout) {提交超时任务};
+    \node [block, right of=set_unlucky_false, text width=8em, node distance=4cm] (extra_layout) {进行额外布局};
+    \node [decision, above of=extra_layout, node distance=4cm] (is_scroll_outside) {此时是否是滑动状态};
+    \node [block, above of=is_scroll_outside, text width=8em, node distance=6cm] (outside) {外界触发预渲染};
+    \node [block, right of=is_scroll_outside, node distance=4cm] (set_unlucky_true) {设置 unlucky 标记位为 true};
+    
+    % Paths
+    \path [line] (touch) -- (receive_scroll);
+    \path [line] (receive_scroll) -- (is_scroll_touch);
+    \path [line] (is_scroll_touch) -- node[left] {No} (is_unlucky);
+    \path [line] (is_unlucky) -- node[above] {Yes} (set_unlucky_false);
+    \path [line] (set_unlucky_false) -- (extra_layout);
+    \path [line] (receive_scroll) -- (with_timeout);
+    \path [line] (with_timeout) -- node[right] {Yes} (post_extra_layout);
+    \path [line] (post_extra_layout) -- (extra_layout);
+    \path [line] (outside) -- (is_scroll_outside);
+    \path [line] (is_scroll_outside) -- node[right] {No} (extra_layout);
+    \path [line] (is_scroll_outside) -- node[above] {Yes} (set_unlucky_true);
+    
+\end{tikzpicture}
+\end{adjustbox}
+\end{center}
