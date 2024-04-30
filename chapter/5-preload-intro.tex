@@ -85,3 +85,15 @@ RecyclerView 会分发滚动状态的变化。RecyclerView 的滚动状态一共
 \end{enumerate}
 
 对于每一个卡片可见性的计算，具体的逻辑就是计算他在布局方向上是否已经离开屏幕。由于全屏视频场景中同时存在的卡片最多有两个，所以不会出现很大的性能损耗。
+
+卡片可见性分发的框架设计如下：
+
+%% 分发的图。用新的 newComposition.
+
+% \fbox{\includegraphics{assets/visibility-dispatch-framework.svg}}
+
+\begin{center}
+\begin{adjustbox}{max width=\textwidth}
+\includegraphics{assets/visibility-dispatch-framework.pdf}
+\end{adjustbox}
+\end{center}
