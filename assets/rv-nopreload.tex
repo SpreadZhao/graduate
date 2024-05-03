@@ -1,7 +1,7 @@
 \begin{figure}
     \centering
-    \begin{adjustbox}{max width=\textwidth}
-        \begin{tikzpicture}[node distance=3cm,>=latex']
+    \begin{adjustbox}{max width=\textwidth,scale=0.8}
+        \begin{tikzpicture}[node distance=3cm]
 
             % Define block styles
             \tikzstyle{decision} = [diamond, draw, fill=blue!0, 
@@ -14,7 +14,7 @@
             \node [block, text width=8em] (touch) {手指开始滑动};
             \node [block, right of=touch, text width=10em, node distance=8cm] (scroll) {RecyclerView 接收到滑动事件};
             \node [block, below of=scroll, text width=10em, node distance=6cm] (start_scroll) {RecyclerView 开始布局流程};
-            \node [decision, left of=start_scroll, node distance=7cm] (extra) {是否需要额外布局空间};
+            \node [decision, left of=start_scroll, node distance=8cm] (extra) {是否需要额外布局空间};
             \node [block, below of=extra, node distance=4cm, text width=20em] (extral_ayout) {进行布局，在布局过程中额外布局一段空间};
             \node [block, above of=extra, node distance=4cm, text width=10em] (normal_layout) {进行普通布局流程};
             % \node [decision, below of=start] (decision) {Decision};
