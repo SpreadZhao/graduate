@@ -1,36 +1,54 @@
-\begin{center}
-\begin{adjustbox}{max width=\textwidth}
-\begin{tikzpicture}
-	\begin{axis}[
-		xlabel={视频数量},
-		ylabel={长帧占比},
-		xmin=0, xmax=6,
-		ymin=0, ymax=6,
-		xtick={0,1,2,3,4,5},
-		ytick={0,1,2,3,4,5},
-		legend pos=north west,
-		grid style=dashed,
-	]
-	
-	\addplot[
-		color=blue,
-		mark=square,
-		]
-		coordinates {
-		(0,1)(1,1)(2,4)(3,2)(4,3)(5,5)
-		};
-	\addlegendentry{数据}
-
-    \addplot[
-		color=red,
-		mark=square,
-		]
-		coordinates {
-		(0,0)(1,2)(2,5)(3,1)(4,2)(5,2)
-		};
-	\addlegendentry{数据}
-	
-	\end{axis}
-\end{tikzpicture}
-\end{adjustbox}
-\end{center}
+\begin{figure}[H]
+	\centering
+		\begin{tikzpicture}
+			\begin{axis}[
+				xlabel={视频数量（个）},
+				ylabel={长帧占比（百分比）},
+				xmin=2, xmax=10,
+				ymin=8, ymax=18,
+				xtick={2, 3, 4, 5, 6, 7, 8, 9, 10},
+				ytick={8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18},
+				legend pos=outer north east,
+				grid style=dashed,
+			]
+			
+			\addplot[
+				color=black,
+				mark=square
+				]
+				coordinates {
+				(2,11.11)(3,11.76)(4,14.28)(5,16)(6,17.24)(7,17.14)(8,17.07)(9,17.39)(10,17.3)
+				};
+			\addlegendentry{预渲染关闭}
+		
+			\addplot[
+				color=black,
+				mark=star
+				]
+				coordinates {
+				(2,11.11)(3,11.11)(4,11.11)(5,13.79)(6,14.7)(7,15.38)(8,15.9)(9,15.38)(10,12.67)
+				};
+			\addlegendentry{一直预渲染}
+		
+			\addplot[
+				color=black,
+				mark=diamond
+				]
+				coordinates {
+				(2,8.69)(3,8.51)(4,8.57)(5,8.6)(6,8.62)(7,8.63)(8,8.64)(9,8.64)(10,8.13)
+				};
+			\addlegendentry{滚动停止预渲染}
+		
+			\addplot[
+				color=black,
+				mark=oplus
+				]
+				coordinates {
+				(2,8.33)(3,8.88)(4,8.95)(5,8.98)(6,8.92)(7,8.95)(8,8.97)(9,8.98)(10,8.41)
+				};
+			\addlegendentry{外界触发预渲染}
+			
+			\end{axis}
+		\end{tikzpicture}
+	\caption{流畅性指标折线图}
+\end{figure}

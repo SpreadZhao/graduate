@@ -14,7 +14,15 @@
 
 最后一步就是绘制了，也就是真正将图形绘制到屏幕上的操作。这部分工作大部分是通过 Android 的上层渲染组件 Canvas 来完成的。 Canvas 会将各种类型的图形在 CPU 上进行计算，之后会将这些计算好的结果发送给 GPU 进行渲染。这也是大部分 Android 动画实现的原理。
 
-对于 ViewGroup 来说，测量的流程需要特别强调。因为 ViewGroup 本身没有内容，它的作用是承载子 View。所以，ViewGroup 的主要测量过程就是去测量自己的子 View，并最终得到所有子 View 的综合属性。
+\begin{figure}
+    \centering
+    \begin{adjustbox}{max width=\textwidth}
+        \includegraphics{assets/view-measure-layout-draw.pdf}
+    \end{adjustbox}
+    \caption{View 的绘制流程}
+\end{figure}
+
+对于 ViewGroup 来说，测量的流程需要特别强调。因为 ViewGroup 本身没有内容，它的作用是承载子 View。所以，ViewGroup 的主要测量过程就是去测量自己的子 View，并最终得到所有子 View 的综合属性。大致的 ViewGroup 与 View 配合进行绘制的流程见图 2.1。
 
 然而，View 体系并没有限制 ViewGroup 应该在测量的时机一定得到子 View 的准确测量结果。这就意味着我们可以在测量的时候返回一个假值，并在后面的时机得到真正的值。RecyclerView 就是这样做的。因为它通常需要承载大量的子 View，因此它对于性能的要求非常高。所以它的测量流程作为非常耗时的一个流程，需要尽可能地减少测量的总次数以及避免重复测量。RecyclerView 真正测量子 View 是在布局流程中，在测量完子 View 之后会立刻对子 View 进行布局。这种方式能够避免子 View 在不适宜的时机请求父 View 测量而导致性能下降的问题。当 RecyclerView 在进行布局时，它会禁止子 View 进行布局请求，从而拦截子 View 的测量请求，从而减少不必要的测量次数。
 
@@ -30,10 +38,18 @@
     \item ACTION\_DOWN：用户手指按在屏幕上的事件；
     \item ACTION\_MOVE：用户手指在屏幕上滑动的事件；
     \item ACTION\_UP：用户手指从屏幕上抬起的事件；
-    \item ACTION\_CANCEL：当事件被上层 ViewGroup 拦截之后，下层 View 接受到的事件。
+    \item ACTION\_CANCEL：当事件被上层 ViewGroup 拦截之后，下层 View 接收到的事件。
 \end{itemize}
 
-触摸事件会从 View 树的根节点开始向下传递。事件在链路中流动的路线总体上呈现出“U 型”。在从顶层的 View 开始向下进行事件的分发（Dispatch）。在这个过程中，路径上的每一个 ViewGroup 都可能拦截（Intercept）这个事件\cite{wu2017appcheck}。如果事件已经传递到了最底层的 View，又或者被其中的某一个 ViewGroup 成功拦截，那么将会由相应的 View 或者 ViewGroup 去逐一消费这个事件。如果事件被当前 View 或 ViewGroup 消费，那么事件的传递将在此终止；如果没有被消费，那么事件会向上传递，直到再次传递到根 View 为止。
+\begin{figure}[htbp]
+    \centering
+    \begin{adjustbox}{max width=\textwidth}
+        \includegraphics[scale=0.7]{assets/view-touch-event.pdf}
+    \end{adjustbox}
+    \caption{View 的触摸事件传递流程}
+\end{figure}
+
+触摸事件会从 View 树的根节点开始向下传递。事件在链路中流动的路线总体上呈现出“U 型”，如图 2.2。在从顶层的 View 开始向下进行事件的分发（Dispatch）。在这个过程中，路径上的每一个 ViewGroup 都可能拦截（Intercept）这个事件\cite{wu2017appcheck}。如果事件已经传递到了最底层的 View，又或者被其中的某一个 ViewGroup 成功拦截，那么将会由相应的 View 或者 ViewGroup 去逐一消费这个事件。如果事件被当前 View 或 ViewGroup 消费，那么事件的传递将在此终止；如果没有被消费，那么事件会向上传递，直到再次传递到根 View 为止。
 
 对于 RecyclerView 来讲，因为其需要处理大量的滚动操作，所以触摸事件的处理尤为重要。当触摸事件被 RecyclerView 拦截时，它会通过当前是否是滚动状态而选择是否拦截该事件。如果是 ACTION\_MOVE 事件，RecyclerView 通过解析事件的详细信息，发现此时用户触发了滚动操作，那么就会将自己标记为滚动状态，并最终拦截这个 ACTION\_MOVE 事件。因此，之后的事件消费也是由 RecyclerView 自身来进行（嵌套滚动不适用于这段说明，但其不在本文的讨论范围内）；如果是 ACTION\_DOWN 事件，那么 RecyclerView 不会拦截这个事件，让其成功到达子 View，由子 View 来决定是否消费该事件。这个过程中，子 View 是否消费 ACTION\_DOWN 事件对后续的事件传递影响尤为重要。如果处理不当，可能会产生一些影响很重大的缺陷。
 

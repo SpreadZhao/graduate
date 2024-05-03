@@ -1,0 +1,28 @@
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+            ybar, % 使用柱状图样式
+            width=13cm,
+            scale=0.8,
+            enlarge x limits={abs=0.5}, % 扩大 X 轴范围，确保边缘数据点完全显示
+            ylabel={首刷时长（秒）}, % Y轴标签
+            xlabel={缓存容量（个）},
+            xmin=0, xmax=15, % X轴范围
+            ymin=0, ymax=6, % Y轴范围
+            xtick={0,1,...,15}, % X轴刻度
+            ytick={0,0.5,...,6}, % Y轴刻度
+            nodes near coords, % 在柱状图上显示具体数值
+            nodes near coords align={vertical}, % 数值显示垂直方向
+            every node near coord/.append style={font=\tiny, inner ysep=3pt} % 设置文字样式和距离
+            ]
+            \addplot[fill=blue!0] coordinates {
+                (0, 5.17)(1, 5.17)(2, 5.33)(3, 4.51)(4, 4.44)(5, 4.3)
+                (6, 4.06)(7, 3.83)(8, 3.59)(9, 3.38)(10, 3.16)(11, 3.52)
+                (12, 3.51)(13, 3.93)(14, 4.33)(15, 4.74)
+            }; % 添加柱状图数据，x=0，y=3.5
+        \end{axis}
+    \end{tikzpicture}
+    \caption{首刷时长与缓存个数的关系}
+\end{figure}
+
