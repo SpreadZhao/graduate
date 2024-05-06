@@ -114,19 +114,7 @@ RecyclerView 不是单独的一个组件。由于处理各种子 View 的回收�
 
 RecyclerView 最推荐的方式是进行增量更新，而不是全量更新。全量更新会导致 RecyclerView 整体的刷新，同时会将所有已经位于屏幕上绑定数据完成的 View 进行回收和废弃，接下来会重新用新的数据进行绑定。因此，如果真正的修改只有非常小的一部分，建议通过增量更新的方式通知 RecyclerView，之后在 RecyclerView 的布局阶段的第一步中会消费这些更新请求，并在最终布局的流程中只进行修改部分的重新布局。这对于性能的提升很大，同时也为动画的执行留足了 CPU 资源。
 
-数据改动的通知是通过 Adapter。当需要的数据发生变化时，会先修改 Adapter 持有的数据结构，并调用 Adapter 的接口去通知 RecyclerView 发生了什么样的变化。通常数据改变有如下的方式：
-
-\begin{itemize}
-    \item 单项改动；
-    \item 多项改动；
-    \item 单项增加；
-    \item 单项移除；
-    \item 多项增加；
-    \item 多项移除；
-    \item 单项移动。
-\end{itemize}
-
-这些改动统一被包装成接口，调用即可提交改动至 RecyclerView。而 RecyclerView 本身通过观察者模式观察 Adapter 中的数据变化。每一次改动行为都会被存放到队列中进入代办（Pending）状态，直到布局流程开始时会被消费。在消费的过程中，也只会通过改动中提交的位置信息对可能受影响的子 View 进行修改。
+数据改动的通知是通过 Adapter。当需要的数据发生变化时，会先修改 Adapter 持有的数据结构，并调用 Adapter 的接口去通知 RecyclerView 发生了什么样的变化。这些改动统一被包装成接口，调用即可提交改动至 RecyclerView。而 RecyclerView 本身通过观察者模式观察 Adapter 中的数据变化。每一次改动行为都会被存放到队列中进入代办（Pending）状态，直到布局流程开始时会被消费。在消费的过程中，也只会通过改动中提交的位置信息对可能受影响的子 View 进行修改。
 
 \subsection{视频类型 Feed 流}
 
