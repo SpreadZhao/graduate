@@ -18,7 +18,7 @@ Android 系统底层采用 Skia，OpenGL 等引擎进行绘制，而在上层封
 
 本课题用到的优化机制，主要是针对 View 的，因此这里着重介绍一下 View 的绘制流程。在 Android 应用中，View 占据了一块屏幕上的矩形区域。在这个区域内，UI 将被显示给用户，同时这块区域也负责处理用户、应用本身输入的事件，从而和用户进行交互\cite{aljarrah2016maintaining}。View 的体系非常庞大，绘制系统也非常复杂。这里主要针对 View 的大致分类和普通 View 的绘制流程进行说明。
 
-\subsubsection{View 的分类}
+\subsubsection*{View 的分类}
 
 从总体的功能上看，View 只分为两种：普通的 View 以及 ViewGroup。顾名思义，ViewGroup是用来承载其它 View 和 ViewGroup 的容器；而普通的 View 无法承载其它的 View，只能作为直接和用户交互的组件。在 Android 系统中，View 体系通过树形结构来存储，因此，这棵树上所有的非叶子节点都是 ViewGroup，所有的叶子节点都是普通的 View。
 
@@ -34,7 +34,7 @@ Android 系统底层采用 Skia，OpenGL 等引擎进行绘制，而在上层封
     \caption{Android 应用程序的 View 层级}
 \end{figure}
 
-\subsubsection{Android 屏幕刷新原理}
+\subsubsection*{Android 屏幕刷新原理}
 
 在 Android 系统中，屏幕的显示操作需要靠三个部分来完成：CPU，GPU 和显示器。其中，CPU 负责进行绘制信息的计算，其中就包括之后我们介绍的 View 的绘制流程。这些计算好的信息会交给 GPU 进行图形渲染，生成每一个屏幕像素点的颜色信息，并存储到一个缓存当中。当需要让显示器进行显示时，GPU 和显示器的缓存会进行交换，这样显示器得到的就是新的要显示的内容。下面针对屏幕刷新的情况介绍一些概念：
 
@@ -50,7 +50,7 @@ Android 系统底层采用 Skia，OpenGL 等引擎进行绘制，而在上层封
 
 下一个问题是两个缓存进行交换的时机。如果无法保证交换时的读写安全，那么依然会产生显示上的问题。当屏幕的最后一个像素显示完毕后，设备需要一段空闲时间，以便将指针移动回第一个像素来显示下一帧的内容。这段空闲的时间叫做 Vertical Blanking Interval（VBI）\cite{anderson1971vertical}。在这段时间内，屏幕上的内容依然会保持原状，并且显示器也不会去读缓存中的内容。因此，这个时间就是进行缓存交换的最佳时刻。在VBI的时间内，系统会发射出用于同步时钟信号的垂直脉冲。这个垂直脉冲也就是 VSync 信号，是我们判断一帧到达的关键信息。
 
-\subsubsection{Choreographer 和屏幕信号进行同步}
+\subsubsection*{Choreographer 和屏幕信号进行同步}
 
 以上的介绍很大程度上是在硬件层面描述 Android 系统中应用的刷新模式。下面我们从软件层面来说明这一过程，来看看在 Android 系统中，画面的刷新流程到底是怎样的。对于应用层的进程来讲，其和屏幕刷新相关的主要媒介是通过一个上层的 Framework 组件 —— Choreographer。
 
