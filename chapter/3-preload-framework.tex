@@ -81,7 +81,15 @@ RecyclerView 会分发滚动状态的变化。RecyclerView 的滚动状态一共
 
 外界触发预渲染模式是最复杂的一个模式，同时还具有超时机制，具体的流程如图 3.2。和 RecyclerView 本身处理滑动的流程不同，该流程是在原来布局流程的基础上额外增加的新流程。因为外界触发的预渲染不会有一个确定的触发时机，所以实际上它和滚动过程中的布局互为异步行为。当外界触发预渲染时，如果此时 RecyclerView 不处于滑动状态，可以直接进行额外布局；而如果此时正在滚动，则此时的预渲染应该在滚动停止时补发。所以设置了 unlucky 标记位来记忆补发预渲染；当开始滑动时，在监听新的滚动状态的回调方法中进行如下任务：
 
-\input{assets/rv-preload-by-outside}
+% \input{assets/rv-preload-by-outside}
+
+\begin{figure}
+    \centering
+    \begin{adjustbox}{max width=\textwidth}
+        \includegraphics{assets/preload-outside.pdf}
+    \end{adjustbox}
+    \caption{外界触发预渲染模式}
+\end{figure}
 
 \begin{itemize}
     \item 首先判断此时是否是滚动状态。如果不是的话，可以查询之前设置的unlucky 标记位。如果为 true，表示之前有一个不幸的外界预渲染等待补发。因此在这里直接进行预渲染；
@@ -157,3 +165,7 @@ Feed 流本身并不局限于视频场景。如微信、今日头条、美团等
 在正常的 RecyclerView 创建卡片时，都是通过 Adapter 的回调实现卡片创建的逻辑。在内部通常会使用布局加载器 LayoutInflater 来通过 XML 文件加载 View。这种方式最耗时的任务就是对于 XML 文件的解析，并根据文件中的 View 层级创建出 View 实例的操作。如果将这部分流程提前进行，在用到的时候直接从缓存池中取用，就能够极大程度地减少 View 创建的耗时。谷歌官方已经提供了将 View 进行异步创建的组件 —— AsyncLayoutInflater。该组件内部拥有一个异步线程以运行业务方提交的 View 加载任务。但是异步创建 View 的难点并不是使用组件进行加载，而是找到加载的时机和用于保存加载出的 View 的缓存。
 
 当 RecyclerView 被初始化时，内部还没有数据。需要等 Adapter 初始化完毕，并主动通知 RecyclerView 数据发生了变化之后，RecyclerView 才会进行相应的布局操作，并在这个过程中将子 View 初始化。在这个过程中，数据到达通常需要等待一段网络 IO 的时间。因此，在这个时间间隔内，开发者可以用来进行 View 的异步创建。并且由于 RecyclerView 展示的子 View 的属性通常都是一致的，因此可以提前知晓 View 的具体类型，并通知异步的 AsyncLayoutInflater 进行加载；View 的缓存选用 SparseArray。因为 SparseArray 与 HashMap 有相似的结构，所以通过 View 的 id 去访问通常有更高的性能；同时如果需要大量的读写操作，SparseArray 也与队列等结构有相似的效率，在移除、添加等操作上相较于数组更高。
+
+\section{本章小节}
+
+本章是优化 Feed 流最主要的工作：预渲染框架。包括框架的设计思路以及具体的内部关键实现。同时对于这个过程中遇到的缺陷，也进行了根源排查与修复；对于图文场景的 Feed 流，我们也进行了 View 预创建优化，并设计了 View 缓存池用来存放创建出的 View 以便后续取用，优化界面首次刷新时长。
